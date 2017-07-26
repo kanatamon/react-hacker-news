@@ -45,7 +45,9 @@ class App extends React.Component<{}, State> {
   }
 
   onPaginatedSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!this.searchElement || this.searchElement.value === '' || !this.state.page) {
+    if (!this.searchElement
+      || this.searchElement.value === ''
+      || this.state.page === undefined) {
       return;
     }
     this.fetchStories(this.searchElement.value, this.state.page + 1);
