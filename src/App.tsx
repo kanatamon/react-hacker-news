@@ -78,12 +78,12 @@ class App extends React.Component<{}, State> {
             <button type="submit">Search</button>
           </form>
 
-          {List({ 
-            list: this.state.hits,
-            page: this.state.page,
-            onPaginatedSearch: this.onPaginatedSearch,
-            isLoading: this.state.isLoading,
-          })}
+          <ListWithPaginatedWithLoading
+            list={this.state.hits}
+            page={this.state.page}
+            onPaginatedSearch={this.onPaginatedSearch}
+            isLoading={this.state.isLoading}
+          />
         </div>
       </div>
     );
@@ -104,17 +104,19 @@ const List = ({ list, page, onPaginatedSearch, isLoading }: ListProps) => (
         <a href={item.url}>{item.title}</a>
       </div>)}
     </div>
+  </div>
+);
 
-    <div className="interactions">
-      {isLoading && <span>Loading...</span>}
-    </div>
+const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
+  <div>
+    <Component {...props} />
 
     <div className="interactions">
       {
-        (page !== undefined && !isLoading) &&
+        (props.page !== undefined && !props.isLoading) &&
         <button 
           type="button"
-          onClick={onPaginatedSearch}
+          onClick={props.onPaginatedSearch}
         >
           More
         </button>
@@ -122,5 +124,17 @@ const List = ({ list, page, onPaginatedSearch, isLoading }: ListProps) => (
     </div>
   </div>
 );
+
+const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
+  <div>
+    <Component {...props} />
+
+    <div className="interactions">
+      {props.isLoading && <span>Loading...</span>}
+    </div>
+  </div>
+);
+
+const ListWithPaginatedWithLoading = withLoading(withPaginated(List));
 
 export default App;
