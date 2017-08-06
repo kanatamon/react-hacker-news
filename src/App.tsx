@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { compose } from 'recompose';
 import './App.css';
 
 const applyUpdateResult = (result: State) => (prevState: State) => ({
@@ -30,7 +31,7 @@ interface State {
 
 class App extends React.Component<{}, State> {
   searchElement: HTMLInputElement | null;
-  
+
   constructor(prop: {}) {
     super(prop);
     this.state = {
@@ -63,18 +64,18 @@ class App extends React.Component<{}, State> {
       .then(response => response.json())
       .then(result => this.onSetResult(result, page));
   }
-  
+
   onSetResult = (result: State, page: number) =>
     page === 0
       ? this.setState(applySetResult(result))
       : this.setState(applyUpdateResult(result))
-  
+
   render() {
     return (
       <div className="page">
         <div className="interactions">
           <form onSubmit={this.onInitialSearch}>
-            <input type="text" ref={element => this.searchElement = element}/>
+            <input type="text" ref={element => this.searchElement = element} />
             <button type="submit">Search</button>
           </form>
 
@@ -94,10 +95,10 @@ interface ListProps {
   list: Array<Hit>;
   page: number | undefined;
   onPaginatedSearch: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
-const List = ({ list, page, onPaginatedSearch, isLoading }: ListProps) => (
+const List: React.StatelessComponent = ({ list }: ListProps & { children?: React.ReactNode }) => (
   <div>
     <div className="list">
       {list.map(item => <div className="list-row" key={item.objectID}>
@@ -114,7 +115,7 @@ const withPaginated = (Component: React.ComponentType<ListProps>) => (props: Lis
     <div className="interactions">
       {
         (props.page !== undefined && !props.isLoading) &&
-        <button 
+        <button
           type="button"
           onClick={props.onPaginatedSearch}
         >
@@ -135,6 +136,9 @@ const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListP
   </div>
 );
 
-const ListWithPaginatedWithLoading = withLoading(withPaginated(List));
+const ListWithPaginatedWithLoading = compose<{}, ListProps>(
+  withPaginated,
+  withLoading,
+)(List);
 
 export default App;
