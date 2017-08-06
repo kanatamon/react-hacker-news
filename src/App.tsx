@@ -4,11 +4,13 @@ import './App.css';
 const applyUpdateResult = (result: State) => (prevState: State) => ({
   hits: [...prevState.hits, ...result.hits],
   page: result.page,
+  isLoading: false,
 });
 
 const applySetResult = (result: State) => (prevState: State) => ({
   hits: result.hits,
   page: result.page,
+  isLoading: false,
 });
 
 const getHackerNewsUrl = (value: string, page: number) =>
@@ -23,6 +25,7 @@ interface Hit {
 interface State {
   hits: Array<Hit>;
   page: number | undefined;
+  isLoading: boolean;
 }
 
 class App extends React.Component<{}, State> {
@@ -33,6 +36,7 @@ class App extends React.Component<{}, State> {
     this.state = {
       hits: [],
       page: undefined,
+      isLoading: false,
     };
   }
 
@@ -53,10 +57,12 @@ class App extends React.Component<{}, State> {
     this.fetchStories(this.searchElement.value, this.state.page + 1);
   }
 
-  fetchStories = (value: string, page: number) =>
+  fetchStories = (value: string, page: number) => {
+    this.setState({ isLoading: true });
     fetch(getHackerNewsUrl(value, page))
       .then(response => response.json())
-      .then(result => this.onSetResult(result, page))
+      .then(result => this.onSetResult(result, page));
+  }
   
   onSetResult = (result: State, page: number) =>
     page === 0
@@ -76,6 +82,7 @@ class App extends React.Component<{}, State> {
             list: this.state.hits,
             page: this.state.page,
             onPaginatedSearch: this.onPaginatedSearch,
+            isLoading: this.state.isLoading,
           })}
         </div>
       </div>
@@ -87,9 +94,10 @@ interface ListProps {
   list: Array<Hit>;
   page: number | undefined;
   onPaginatedSearch: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  isLoading?: boolean;
 }
 
-const List = ({ list, page, onPaginatedSearch }: ListProps) => (
+const List = ({ list, page, onPaginatedSearch, isLoading }: ListProps) => (
   <div>
     <div className="list">
       {list.map(item => <div className="list-row" key={item.objectID}>
@@ -98,8 +106,12 @@ const List = ({ list, page, onPaginatedSearch }: ListProps) => (
     </div>
 
     <div className="interactions">
+      {isLoading && <span>Loading...</span>}
+    </div>
+
+    <div className="interactions">
       {
-        page !== undefined &&
+        (page !== undefined && !isLoading) &&
         <button 
           type="button"
           onClick={onPaginatedSearch}
