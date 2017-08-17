@@ -49,7 +49,7 @@ class App extends React.Component<{}, State> {
     this.fetchStories(this.searchElement.value, 0);
   }
 
-  onPaginatedSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
+  onPaginatedSearch = () => {
     if (!this.searchElement
       || this.searchElement.value === ''
       || this.state.page === undefined) {
@@ -94,19 +94,41 @@ class App extends React.Component<{}, State> {
 interface ListProps {
   list: Array<Hit>;
   page: number | undefined;
-  onPaginatedSearch: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onPaginatedSearch: () => void;
   isLoading: boolean;
 }
 
-const List: React.StatelessComponent = ({ list }: ListProps & { children?: React.ReactNode }) => (
-  <div>
-    <div className="list">
-      {list.map(item => <div className="list-row" key={item.objectID}>
-        <a href={item.url}>{item.title}</a>
-      </div>)}
-    </div>
-  </div>
-);
+class List extends React.Component<ListProps> {
+  componentDidMount() {
+    window.addEventListener('scroll', this.onScroll, false);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll, false);
+  }
+
+  onScroll = () => {
+    if (
+      (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
+      this.props.list.length
+    ) {
+      this.props.onPaginatedSearch();
+    }
+  }
+  
+  render() {
+    const { list } = this.props;
+    return (
+      <div>
+        <div className="list">
+          {list.map(item => <div className="list-row" key={item.objectID}>
+            <a href={item.url}>{item.title}</a>
+          </div>)}
+        </div>
+      </div>
+    );
+  }
+}
 
 const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
   <div>
