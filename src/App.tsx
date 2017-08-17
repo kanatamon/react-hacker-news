@@ -79,7 +79,7 @@ class App extends React.Component<{}, State> {
             <button type="submit">Search</button>
           </form>
 
-          <ListWithPaginatedWithLoading
+          <ListWithInfiniteScrollWithLoading
             list={this.state.hits}
             page={this.state.page}
             onPaginatedSearch={this.onPaginatedSearch}
@@ -98,55 +98,58 @@ interface ListProps {
   isLoading: boolean;
 }
 
-class List extends React.Component<ListProps> {
-  componentDidMount() {
-    window.addEventListener('scroll', this.onScroll, false);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('scroll', this.onScroll, false);
-  }
-
-  onScroll = () => {
-    if (
-      (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
-      this.props.list.length
-    ) {
-      this.props.onPaginatedSearch();
-    }
-  }
-  
-  render() {
-    const { list } = this.props;
-    return (
-      <div>
-        <div className="list">
-          {list.map(item => <div className="list-row" key={item.objectID}>
-            <a href={item.url}>{item.title}</a>
-          </div>)}
-        </div>
-      </div>
-    );
-  }
-}
-
-const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
+const List: React.StatelessComponent<ListProps> = ({ list }) => (
   <div>
-    <Component {...props} />
-
-    <div className="interactions">
-      {
-        (props.page !== undefined && !props.isLoading) &&
-        <button
-          type="button"
-          onClick={props.onPaginatedSearch}
-        >
-          More
-        </button>
-      }
+    <div className="list">
+      {list.map(item => <div className="list-row" key={item.objectID}>
+        <a href={item.url}>{item.title}</a>
+      </div>)}
     </div>
   </div>
 );
+
+function withInfiniteScroll(Component: React.ComponentType<ListProps>) {
+  return class WithInfiniteScroll extends React.Component<ListProps> {
+    componentDidMount() {
+      window.addEventListener('scroll', this.onScroll, false);
+    }
+
+    componentWillUnmount() {
+      window.removeEventListener('scroll', this.onScroll, false);
+    }
+
+    onScroll = () => {
+      if (
+        (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
+        this.props.list.length
+      ) {
+        this.props.onPaginatedSearch();
+      }
+    }
+    
+    render() {
+      return <Component {...this.props}/>;
+    }
+  };
+}
+
+// const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
+//   <div>
+//     <Component {...props} />
+
+//     <div className="interactions">
+//       {
+//         (props.page !== undefined && !props.isLoading) &&
+//         <button
+//           type="button"
+//           onClick={props.onPaginatedSearch}
+//         >
+//           More
+//         </button>
+//       }
+//     </div>
+//   </div>
+// );
 
 const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
   <div>
@@ -158,9 +161,9 @@ const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListP
   </div>
 );
 
-const ListWithPaginatedWithLoading = compose<{}, ListProps>(
-  withPaginated,
+const ListWithInfiniteScrollWithLoading = compose<{}, ListProps>(
   withLoading,
+  withInfiniteScroll,
 )(List);
 
 export default App;
