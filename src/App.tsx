@@ -123,68 +123,84 @@ const List: React.StatelessComponent<ListProps> = ({ list }) => (
   </div>
 );
 
-function withInfiniteScroll(Component: React.ComponentType<ListProps>) {
-  return class WithInfiniteScroll extends React.Component<ListProps> {
-    componentDidMount() {
-      window.addEventListener('scroll', this.onScroll, false);
-    }
-
-    componentWillUnmount() {
-      window.removeEventListener('scroll', this.onScroll, false);
-    }
-
-    onScroll = () => {
-      if (
-        (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
-        this.props.list.length &&
-        !this.props.isLoading &&
-        !this.props.isError
-      ) {
-        this.props.onPaginatedSearch();
-      }
-    }
-    
-    render() {
-      return <Component {...this.props}/>;
-    }
-  };
+interface ConditionFunc<P> {
+  (props: P): boolean;
 }
 
-const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
-  <div>
-    <Component {...props} />
-
-    <div className="interactions">
-      {
-        (props.page !== undefined && !props.isLoading && props.isError) &&
-        <div>
-          <div>Something went wrong...</div>
-          <button
-            type="button"
-            onClick={props.onPaginatedSearch}
-          >
-            Try Agian
-          </button>
-        </div>
+function withInfiniteScroll(conditionFn: ConditionFunc<ListProps>) {
+  return (Component: React.ComponentType<ListProps>) => 
+    class WithInfiniteScroll extends React.Component<ListProps> {
+      componentDidMount() {
+        window.addEventListener('scroll', this.onScroll, false);
       }
-    </div>
-  </div>
-);
 
-const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
-  <div>
-    <Component {...props} />
+      componentWillUnmount() {
+        window.removeEventListener('scroll', this.onScroll, false);
+      }
 
-    <div className="interactions">
-      {props.isLoading && <span>Loading...</span>}
-    </div>
-  </div>
-);
+      onScroll = () => {
+        if (
+          (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
+          conditionFn(this.props)
+        ) {
+          this.props.onPaginatedSearch();
+        }
+      }
+      
+      render() {
+        return <Component {...this.props}/>;
+      }
+    };
+}
+
+function withPaginated(conditionFn: ConditionFunc<ListProps>) {
+  return (Component: React.ComponentType<ListProps>) => 
+    (props: ListProps) => (
+      <div>
+        <Component {...props} />
+    
+        <div className="interactions">
+          {
+            conditionFn(props) &&
+            <div>
+              <div>Something went wrong...</div>
+              <button
+                type="button"
+                onClick={props.onPaginatedSearch}
+              >
+                Try Agian
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    );
+}
+
+function withLoading(conditionFn: ConditionFunc<ListProps>) {
+  return (Component: React.ComponentType<ListProps>) => 
+    (props: ListProps) => (
+      <div>
+        <Component {...props} />
+    
+        <div className="interactions">
+          {conditionFn(props) && <span>Loading...</span>}
+        </div>
+      </div>
+    );
+}
 
 const AdvancedList = compose<{}, ListProps>(
-  withLoading,
-  withPaginated,
-  withInfiniteScroll,
+  withLoading((props: ListProps) => 
+     props.isLoading),
+  withPaginated((props: ListProps) => 
+    (props.page !== undefined && 
+    !props.isLoading && 
+     props.isError)),
+  withInfiniteScroll((props: ListProps) => 
+    (props.list.length > 0 &&
+    !props.isLoading &&
+    !props.isError)),
 )(List);
 
 export default App;
