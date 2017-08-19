@@ -6,11 +6,18 @@ const applyUpdateResult = (result: State) => (prevState: State) => ({
   hits: [...prevState.hits, ...result.hits],
   page: result.page,
   isLoading: false,
+  isError: false,
 });
 
 const applySetResult = (result: State) => (prevState: State) => ({
   hits: result.hits,
   page: result.page,
+  isLoading: false,
+  isError: false,
+});
+
+const appleSetError = (prevState: State) => ({
+  isError: true,
   isLoading: false,
 });
 
@@ -27,6 +34,7 @@ interface State {
   hits: Array<Hit>;
   page: number | undefined;
   isLoading: boolean;
+  isError: boolean;
 }
 
 class App extends React.Component<{}, State> {
@@ -38,6 +46,7 @@ class App extends React.Component<{}, State> {
       hits: [],
       page: undefined,
       isLoading: false,
+      isError: false,
     };
   }
 
@@ -62,8 +71,12 @@ class App extends React.Component<{}, State> {
     this.setState({ isLoading: true });
     fetch(getHackerNewsUrl(value, page))
       .then(response => response.json())
-      .then(result => this.onSetResult(result, page));
+      .then(result => this.onSetResult(result, page))
+      .catch(this.onSetError);
   }
+
+  onSetError = () => 
+    this.setState(appleSetError)
 
   onSetResult = (result: State, page: number) =>
     page === 0
@@ -79,11 +92,12 @@ class App extends React.Component<{}, State> {
             <button type="submit">Search</button>
           </form>
 
-          <ListWithInfiniteScrollWithLoading
+          <AdvancedList
             list={this.state.hits}
             page={this.state.page}
             onPaginatedSearch={this.onPaginatedSearch}
             isLoading={this.state.isLoading}
+            isError={this.state.isError}
           />
         </div>
       </div>
@@ -96,6 +110,7 @@ interface ListProps {
   page: number | undefined;
   onPaginatedSearch: () => void;
   isLoading: boolean;
+  isError: boolean;
 }
 
 const List: React.StatelessComponent<ListProps> = ({ list }) => (
@@ -122,7 +137,8 @@ function withInfiniteScroll(Component: React.ComponentType<ListProps>) {
       if (
         (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 500) &&
         this.props.list.length &&
-        !this.props.isLoading
+        !this.props.isLoading &&
+        !this.props.isError
       ) {
         this.props.onPaginatedSearch();
       }
@@ -134,23 +150,26 @@ function withInfiniteScroll(Component: React.ComponentType<ListProps>) {
   };
 }
 
-// const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
-//   <div>
-//     <Component {...props} />
+const withPaginated = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
+  <div>
+    <Component {...props} />
 
-//     <div className="interactions">
-//       {
-//         (props.page !== undefined && !props.isLoading) &&
-//         <button
-//           type="button"
-//           onClick={props.onPaginatedSearch}
-//         >
-//           More
-//         </button>
-//       }
-//     </div>
-//   </div>
-// );
+    <div className="interactions">
+      {
+        (props.page !== undefined && !props.isLoading && props.isError) &&
+        <div>
+          <div>Something went wrong...</div>
+          <button
+            type="button"
+            onClick={props.onPaginatedSearch}
+          >
+            Try Agian
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+);
 
 const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListProps) => (
   <div>
@@ -162,8 +181,9 @@ const withLoading = (Component: React.ComponentType<ListProps>) => (props: ListP
   </div>
 );
 
-const ListWithInfiniteScrollWithLoading = compose<{}, ListProps>(
+const AdvancedList = compose<{}, ListProps>(
   withLoading,
+  withPaginated,
   withInfiniteScroll,
 )(List);
 
